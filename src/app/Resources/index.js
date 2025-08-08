@@ -9,6 +9,11 @@ import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 
 const ASSETS = [
   {
+    key: "envmap",
+    path: "envmap.hdr",
+    type: "envmap",
+  },
+  {
     key: "blaze",
     path: "blaze.webm",
     type: "video",

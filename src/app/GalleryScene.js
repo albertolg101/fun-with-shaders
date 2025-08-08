@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import { Color, Group, Raycaster, Scene, Vector2 } from "three";
+import { AmbientLight, Color, Group, Raycaster, Scene, Vector2 } from "three";
 import { GalleryItem } from "./GalleryItem";
 import resources from "./Resources";
 
@@ -54,6 +54,8 @@ export class GalleryScene {
   _init() {
     this.scene = new Scene();
     // this.scene.background = new Color(0xffffff);
+    this.scene.background = resources.get("envmap");
+    this.scene.backgroundBlurriness = 0.3;
   }
 
   _initGallery(colorFrom, colorTo) {
@@ -163,7 +165,7 @@ export class GalleryScene {
     const direction = e.direction[0];
 
     if (
-      Math.abs(delta) > 50 &&
+      Math.abs(delta) > 30 &&
       (this._lastWheelDelta === undefined ||
         Math.abs(delta) > Math.abs(this._lastWheelDelta)) &&
       !this._rotationAnimation

@@ -7,7 +7,12 @@ import {
 } from "three";
 import Stats from "stats.js";
 import { GalleryScene } from "./GalleryScene";
-import { EffectComposer, RenderPass } from "postprocessing";
+import {
+  BloomEffect,
+  EffectComposer,
+  EffectPass,
+  RenderPass,
+} from "postprocessing";
 import resources from "./Resources";
 
 export class App {
@@ -62,6 +67,16 @@ export class App {
       frameBufferType: HalfFloatType,
     });
     this._composer.addPass(new RenderPass(this._scene.scene, this._camera));
+    this._composer.addPass(
+      new EffectPass(
+        this._camera,
+        new BloomEffect({
+          intensity: 0.8,
+          threshold: 0.5,
+          radius: 1,
+        })
+      )
+    );
   }
 
   _initEvents() {
