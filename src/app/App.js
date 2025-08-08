@@ -7,12 +7,8 @@ import {
 } from "three";
 import Stats from "stats.js";
 import { GalleryScene } from "./GalleryScene";
-import {
-  EffectComposer,
-  RenderPass,
-  EffectPass,
-  GaussianBlurPass,
-} from "postprocessing";
+import { EffectComposer, RenderPass } from "postprocessing";
+import resources from "./Resources";
 
 export class App {
   _renderer;
@@ -24,10 +20,7 @@ export class App {
 
   constructor() {
     this._init();
-    this._initScene();
-    this._initEvents();
-    this._resize();
-    this._animate();
+    this._load();
   }
 
   _init() {
@@ -51,6 +44,16 @@ export class App {
 
     this._stats = new Stats();
     document.body.appendChild(this._stats.dom);
+
+    // new OrbitControls(this._camera, this._renderer.domElement);
+  }
+
+  async _load() {
+    await resources.load();
+    this._initScene();
+    this._initEvents();
+    this._resize();
+    this._animate();
   }
 
   _initScene() {
@@ -59,16 +62,6 @@ export class App {
       frameBufferType: HalfFloatType,
     });
     this._composer.addPass(new RenderPass(this._scene.scene, this._camera));
-    // this._composer.addPass(
-    //   new EffectPass(
-    //     this._camera,
-    //     new BloomEffect({
-    //       intensity: 0.2,
-    //       luminanceThreshold: 0.1,
-    //       radius: 1,
-    //     })
-    //   )
-    // );
   }
 
   _initEvents() {
@@ -94,7 +87,7 @@ export class App {
     this._stats.begin();
 
     // this._renderer.render(this._scene.scene, this._camera);
-    this._scene.animate();
+    this._scene.animate(this._camera);
     this._composer.render();
 
     this._stats.end();
@@ -103,5 +96,9 @@ export class App {
 
   onWheel(e) {
     this._scene.onWheel(e);
+  }
+
+  onMove(e) {
+    this._scene.onMove(e);
   }
 }

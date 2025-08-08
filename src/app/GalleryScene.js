@@ -1,92 +1,119 @@
 import gsap from "gsap";
-import {
-  Color,
-  Group,
-  Mesh,
-  PlaneGeometry,
-  Scene,
-  ShaderMaterial,
-  Vector3,
-} from "three";
+import { Color, Group, Raycaster, Scene, Vector2 } from "three";
+import { GalleryItem } from "./GalleryItem";
+import resources from "./Resources";
 
-import vertex from "./shaders/index.vert";
-import fragment from "./shaders/index.frag";
+const raycaster = new Raycaster();
 
 export class GalleryScene {
+  static resources = [
+    "blaze",
+    "bogged",
+    "breeze",
+    "creaking",
+    "creeper",
+    "slime",
+    "wither",
+    "zombie",
+  ];
+  static count = GalleryScene.resources.length;
+
   scene;
-  PLANE_GEOMETRY;
-  _count;
   _galery;
   _hasInertia;
   _rotationAnimation;
   _lastWheelDelta;
   _lastZ;
   _lastTime;
+  _mouseNDC;
 
   constructor(renderer) {
     this._init();
     this._hasInertia = false;
     this._rotationAnimation = undefined;
     this._lastWheelDelta = undefined;
+    this._mouseNDC = undefined;
 
     // Init Galeries
+    const h = Math.random();
     const colorFrom = new Color();
-    colorFrom.setHSL(Math.random(), 1, 0.5);
+    colorFrom.setHSL(h, 1, 0.5);
     const colorTo = new Color();
-    colorTo.setHSL(Math.random(), 1, 0.5);
-    this._count = 16;
+    colorTo.setHSL((h + 0.5) % 1, 1, 0.5);
     this._initGallery(colorFrom, colorTo);
   }
 
   get degree() {
-    return (Math.PI * 2) / this._count;
+    return (Math.PI * 2) / GalleryScene.count;
   }
 
   _init() {
-    const height = window.innerHeight * 0.8;
-    const width = (height / 7) * 5;
-
-    this.PLANE_GEOMETRY = new PlaneGeometry(width, height, 3, 10);
     this.scene = new Scene();
     // this.scene.background = new Color(0xffffff);
   }
 
   _initGallery(colorFrom, colorTo) {
-    const height = this.PLANE_GEOMETRY.parameters.height;
-    const width = this.PLANE_GEOMETRY.parameters.width;
-    const radius = ((this._count * width) / Math.PI / 2) * 1.5;
+    const count = this.constructor.count;
+    const [width, height] =
+      window.innerWidth < window.innerHeight
+        ? [
+            window.innerWidth * 0.8,
+            (window.innerWidth * 0.8) / GalleryItem.aspect,
+          ]
+        : [
+            window.innerHeight * 0.8 * GalleryItem.aspect,
+            window.innerHeight * 0.8,
+          ];
+    const radius = ((count * width) / Math.PI / 2) * 1.5;
     this._galery = new Group();
 
-    for (let i = 0; i < this._count; i++) {
-      const t = Math.abs(2 * (i / (this._count - 1) - 0.5));
-      const color = colorFrom.clone().lerp(colorTo, t);
+    this.constructor.resources.forEach((r, index) => {
+      const texture = resources.get(r);
+      const t = 2 * Math.abs(index / (count - 1) - 0.5);
+      const color = colorFrom.clone().lerpHSL(colorTo, t);
 
-      const mat = new ShaderMaterial({
-        vertexShader: vertex,
-        fragmentShader: fragment,
-        uniforms: {
-          uColor: { value: color },
-          uVelocity: { value: 0 },
-        },
-      });
-
-      const mesh = new Mesh(this.PLANE_GEOMETRY, mat);
-
-      mesh.rotateZ(i * this.degree);
-      mesh.translateY(radius + height / 2);
-      this._galery.add(mesh);
-    }
+      const galeryItem = new GalleryItem(texture, color);
+      galeryItem.mesh.scale.setScalar(width);
+      galeryItem.mesh.rotateZ(index * this.degree);
+      galeryItem.mesh.translateY(radius + height / 2);
+      this._galery.add(galeryItem.mesh);
+    });
 
     this._galery.position.y = -1 * (radius + height / 2);
     this.scene.add(this._galery);
   }
 
-  animate() {}
+  animate(camera) {
+    this._galery.children.forEach((child) => {
+      child.material.uniforms.uMouse.value.set(0, 0);
+    });
+
+    if (this._mouseNDC) {
+      raycaster.setFromCamera(this._mouseNDC, camera);
+      const intersects = raycaster.intersectObject(this._galery);
+      if (intersects.length > 0) {
+        console.log(intersects);
+        intersects.forEach((intersect) => {
+          intersect.object.material.uniforms.uMouse.value.copy(intersect.uv);
+        });
+      }
+    }
+  }
 
   onWheel(e) {
-    const delta = e.delta[1];
-    if (e.elapsedTime === 0) console.log(e);
-    console.log(this._rotationAnimation);
+    let delta;
+    let velocity;
+    let direction;
+
+    if (Math.abs(e.delta[0]) > Math.abs(e.delta[1])) {
+      delta = e.delta[0];
+      velocity = e.velocity[0];
+      direction = e.direction[0];
+    } else {
+      delta = e.delta[1];
+      velocity = e.velocity[1];
+      direction = e.direction[1];
+    }
 
     if (
       (this._lastWheelDelta === undefined ||
@@ -97,15 +124,13 @@ export class GalleryScene {
       this._hasInertia = true;
       this._galery.children.forEach(
         (child) =>
-          (child.material.uniforms.uVelocity.value =
-            e.direction[1] * e.velocity[1])
+          (child.material.uniforms.uVelocity.value = direction * velocity)
       );
     } else {
       if (!this._rotationAnimation && this._hasInertia) {
         const z = this._galery.rotation.z;
         this._galery.children.forEach(
-          (child) =>
-            (child.material.uniforms.uVelocity.value = e.direction[1] * 21)
+          (child) => (child.material.uniforms.uVelocity.value = direction * 21)
         );
         this._lastZ = z;
         this._lastTime = performance.now();
@@ -113,8 +138,7 @@ export class GalleryScene {
           duration: 0.5,
           ease: "power2.out",
           z:
-            ((Math.floor(z / this.degree) + (e.direction[1] > 0)) *
-              this.degree) %
+            ((Math.floor(z / this.degree) + (direction > 0)) * this.degree) %
             (Math.PI * 2),
           onUpdate: () => {
             const time = performance.now();
@@ -136,5 +160,12 @@ export class GalleryScene {
     }
 
     this._lastWheelDelta = delta;
+  }
+
+  onMove(e) {
+    this._mouseNDC = new Vector2(
+      (e.values[0] / window.innerWidth) * 2 - 1,
+      (e.values[1] / window.innerHeight) * 2 - 1
+    );
   }
 }
