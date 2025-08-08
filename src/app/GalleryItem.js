@@ -3,7 +3,7 @@ import fragment from "./shaders/GalleryItem.frag";
 import { Mesh, PlaneGeometry, ShaderMaterial, Vector2 } from "three";
 
 export class GalleryItem {
-  static PLANE_GEOMETRY = new PlaneGeometry(1, 8 / 5, 10, 10);
+  static PLANE_GEOMETRY = new PlaneGeometry(1, 8 / 5, 20, 20);
   mesh;
 
   constructor(texture, color) {
@@ -33,6 +33,9 @@ export class GalleryItem {
         uColor: { value: color },
         uVelocity: { value: 0 },
         uMouse: { value: new Vector2() },
+        uTime: { value: 0 },
+        uBend: { value: 0 },
+        uMouseRadio: { value: 0.3 },
       },
     });
 

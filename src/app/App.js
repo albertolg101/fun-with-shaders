@@ -87,7 +87,7 @@ export class App {
     this._stats.begin();
 
     // this._renderer.render(this._scene.scene, this._camera);
-    this._scene.animate(this._camera);
+    this._scene.animate(this._camera, this._clock);
     this._composer.render();
 
     this._stats.end();
@@ -100,5 +100,17 @@ export class App {
 
   onMove(e) {
     this._scene.onMove(e);
+  }
+
+  onDrag(e) {
+    this._scene.onDrag(e);
+  }
+
+  onPointerDown(e) {
+    this._scene.onPointerDown(e, this._camera);
+  }
+
+  onPointerUp(e) {
+    this._scene.onPointerUp(e, this._camera);
   }
 }
